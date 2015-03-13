@@ -5,16 +5,18 @@ var DDPServer = function(opts) {
   opts = opts || {};
   var WebSocket = require('faye-websocket'),
       http = require('http'),
-      server = http.createServer(),
+      server = opts.server,
       methods = opts.methods || {},
       collections = {},
       subscriptions = {},
       self = this;
 
-  server.on('upgrade', upgrade);
-  server.listen(opts.port || 3000);
-
-  function upgrade(request, socket, body) {
+  if (!server) {
+    server = http.createServer()
+    server.listen(opts.port || 3000);
+  }
+  
+  server.on('upgrade', function (request, socket, body) {
     if (WebSocket.isWebSocket(request)) {
       var ws = new WebSocket(request, socket, body);
       var session_id = "" + new Date().getTime();
@@ -142,7 +144,7 @@ var DDPServer = function(opts) {
         session_id = null;
       });
     }
-  }
+  });
 
   this.methods = function(newMethods) {
     for (var key in newMethods) {
