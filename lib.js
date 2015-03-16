@@ -159,27 +159,45 @@ var DDPServer = function(opts) {
       throw new Error(500, "A collection named " + key + " already exists");
 
     var documents = {};
+    var proxiedDocuments = {};
 
     function add(id, doc) {
       documents[id] = doc;
+      proxiedDocuments[id] = Proxy(doc, {
+        set: function(_, field, value) {
+          var changed = {};
+          doc[field] = changed[field] = value;
+          sendChanged(id, changed, []);
+          return value;
+        },
+        deleteProperty: function(_, field) {
+          delete doc[field];
+          sendChanged(id, {}, [field]);
+        }
+      });
       for (var client in subscriptions)
         if (subscriptions[client][name])
           subscriptions[client][name].added(id, doc);
     }
 
     function change(id, doc) {
+      var cleared = [];
+      for (var field in documents[id]) {
+        if (!(field in doc)) {
+          cleared.push(field)
+          delete documents[id][field];
+        }
+      }
       var changed = {};
       for (var field in doc)
         if (doc[field] != documents[id][field])
-          changed[field] = doc[field];
-      var cleared = [];
-      for (var field in documents[id])
-        if (!(field in doc))
-          cleared.push(field)
-      documents[id] = doc;
+          documents[id][field] = changed[field] = doc[field];
+      sendChanged(id, changed, cleared);
+    }
+    function sendChanged(id, changed, cleared) {
       for (var client in subscriptions)
         if (subscriptions[client][name])
-          subscriptions[client][name].changed(id, changed, cleared);
+          subscriptions[client][name].changed(id, changed, cleared);      
     }
 
     function remove(id) {
@@ -190,11 +208,15 @@ var DDPServer = function(opts) {
     }
 
     return collections[name] = Proxy(documents, {
+      get: function(_, id) {
+        return proxiedDocuments[id];
+      },
       set: function(_, id, doc) {
         if (documents[id])
           change(id, doc);
         else
           add(id, doc);
+        return proxiedDocuments[id];
       },
       deleteProperty: function(_, id) {
         remove(id);
