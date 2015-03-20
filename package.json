@@ -1,6 +1,6 @@
 {
   "name": "ddp-server-reactive",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A ddp server for nodejs with reactive collections",
   "main": "lib.js",
   "scripts": {
@@ -22,6 +22,7 @@
   },
   "homepage": "https://github.com/Q42/DDP-Server-Reactive",
   "dependencies": {
+    "ejson": "^2.0.1",
     "faye-websocket": "^0.9.0",
     "harmony-reflect": "^1.1.1"
   }

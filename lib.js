@@ -4,6 +4,7 @@ var DDPServer = function(opts) {
 
   opts = opts || {};
   var WebSocket = require('faye-websocket'),
+      EJSON = require('ejson'),
       http = require('http'),
       server = opts.httpServer,
       methods = opts.methods || {},
@@ -23,7 +24,7 @@ var DDPServer = function(opts) {
       subscriptions[session_id] = {};
 
       function sendMessage(data) {
-        ws.send(JSON.stringify(data));
+        ws.send(EJSON.stringify(data));
       }
 
       ws.on('message', function(event) {
