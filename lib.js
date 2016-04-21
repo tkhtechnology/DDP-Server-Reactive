@@ -157,7 +157,7 @@ var DDPServer = function(opts) {
 
   this.publish = function(name) {
     if (name in collections)
-      throw new Error(500, "A collection named " + key + " already exists");
+      throw new Error(500, "A collection named " + name + " already exists");
 
     var documents = {};
     var proxiedDocuments = {};
