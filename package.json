@@ -1,26 +1,26 @@
 {
-  "name": "ddp-server-reactive",
+  "name": "evista-ddp-server-reactive",
   "version": "0.2.0",
-  "description": "A ddp server for nodejs with reactive collections",
+  "description": "A ddp server for nodejs with reactive collections (fork of ddp-server-reactive for bugfixes)",
   "main": "lib.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "http://github.com/Q42/DDP-Server-Reactive"
+    "url": "https://github.com/balintsera/DDP-Server-Reactive.git"
   },
   "keywords": [
     "ddp",
     "server",
     "reactive"
   ],
-  "author": "Sjoerd Visscher",
+  "author": "Balint Sera",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/Q42/DDP-Server-Reactive/issues"
+    "url": "https://github.com/balintsera/DDP-Server-Reactive.git/issues"
   },
-  "homepage": "https://github.com/Q42/DDP-Server-Reactive",
+  "homepage": "https://github.com/balintsera/DDP-Server-Reactive.git",
   "dependencies": {
     "ejson": "^2.0.1",
     "faye-websocket": "^0.9.0",
