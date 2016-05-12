@@ -164,7 +164,7 @@ var DDPServer = function(opts) {
 
     function add(id, doc) {
       documents[id] = doc;
-      proxiedDocuments[id] = Proxy(doc, {
+      proxiedDocuments[id] = new Proxy(doc, {
         set: function(_, field, value) {
           var changed = {};
           doc[field] = changed[field] = value;
@@ -208,7 +208,7 @@ var DDPServer = function(opts) {
           subscriptions[client][name].removed(id);
     }
 
-    return collections[name] = Proxy(documents, {
+    return collections[name] = new Proxy(documents, {
       get: function(_, id) {
         return proxiedDocuments[id];
       },
