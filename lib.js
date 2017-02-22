@@ -16,7 +16,7 @@ var DDPServer = function(opts) {
     server = http.createServer()
     server.listen(opts.port || 3000);
   }
-  
+
   server.on('upgrade', function (request, socket, body) {
     if (WebSocket.isWebSocket(request)) {
       var ws = new WebSocket(request, socket, body);
@@ -174,6 +174,7 @@ var DDPServer = function(opts) {
         deleteProperty: function(_, field) {
           delete doc[field];
           sendChanged(id, {}, [field]);
+          return true;
         }
       });
       for (var client in subscriptions)
@@ -198,7 +199,7 @@ var DDPServer = function(opts) {
     function sendChanged(id, changed, cleared) {
       for (var client in subscriptions)
         if (subscriptions[client][name])
-          subscriptions[client][name].changed(id, changed, cleared);      
+          subscriptions[client][name].changed(id, changed, cleared);
     }
 
     function remove(id) {
@@ -221,6 +222,7 @@ var DDPServer = function(opts) {
       },
       deleteProperty: function(_, id) {
         remove(id);
+        return true;
       }
     });
   }
