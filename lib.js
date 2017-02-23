@@ -44,10 +44,8 @@ var DDPServer = function(opts) {
         case "method":
 
           if (data.method in methods) {
-
-            try {
-              var result = methods[data.method].apply(this, data.params)
-
+            Promise.resolve(methods[data.method].apply(this, data.params))
+            .then(function(result){
               sendMessage({
                 msg: "result",
                 id: data.id,
@@ -58,32 +56,31 @@ var DDPServer = function(opts) {
                 msg: "updated",
                 id: data.id
               })
-
-            } catch (e) {
-              console.log("error calling method", data.method, e)
+            })
+            .catch(function(e){
+              console.log('ddp server error', e.message);
               sendMessage({
                 id: data.id,
                 error: {
                   error: 500,
-                  reason: "Internal Server Error",
+                  reason: e.message,
                   errorType: "Meteor.Error"
                 }
               });
-            }
+            });
 
           } else {
-            console.log("Error method " + data.method + " not found");
+              console.log("Error method " + data.method + " not found");
 
-            sendMessage({
-              id: data.id,
-              error: {
-                error: 404,
-                reason: "Method not found",
-                errorType: "Meteor.Error"
-              }
-            });
+              sendMessage({
+                id: data.id,
+                error: {
+                  error: 404,
+                  reason: "Method not found",
+                  errorType: "Meteor.Error"
+                }
+              });
           }
-
           break;
 
         case "sub":
