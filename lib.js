@@ -60,6 +60,7 @@ var DDPServer = function(opts) {
             .catch(function(e){
               console.log('ddp server error', e.message);
               sendMessage({
+                msg: "result",
                 id: data.id,
                 error: {
                   error: 500,
@@ -73,6 +74,7 @@ var DDPServer = function(opts) {
               console.log("Error method " + data.method + " not found");
 
               sendMessage({
+                msg: "result",
                 id: data.id,
                 error: {
                   error: 404,
