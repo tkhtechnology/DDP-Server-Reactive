@@ -10,6 +10,7 @@ var DDPServer = function(opts) {
       methods = opts.methods || {},
       collections = {},
       subscriptions = {},
+      filters = {};
       self = this;
 
   if (!server) {
@@ -114,9 +115,17 @@ var DDPServer = function(opts) {
             }
           };
 
+          var filter = function() { return true; }
+          if (data.name in filters) {
+            filter = filters[data.name];
+          }
+
           var docs = collections[data.name];
-          for (var id in docs)
-            subscriptions[session_id][data.name].added(id, docs[id]);
+          for (var id in docs) {
+            if (filter(data.params, id)) {
+              subscriptions[session_id][data.name].added(id, docs[id]);
+            }
+          }
 
           sendMessage({
             msg: "ready",
@@ -154,9 +163,12 @@ var DDPServer = function(opts) {
     }
   }
 
-  this.publish = function(name) {
+  this.publish = function(name, filter) {
     if (name in collections)
       throw new Error(500, "A collection named " + name + " already exists");
+
+
+    filters[name] = filter;
 
     var documents = {};
     var proxiedDocuments = {};
