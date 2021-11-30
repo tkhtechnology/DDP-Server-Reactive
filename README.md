@@ -52,11 +52,11 @@ var server = new DDPServer({ httpServer: app.server });
 ### Filter docs which should be published
 When publishing collection you can set object with predicaments for deciding which documents should be returned
 when subscribing or if subscriber should be notified when document is added, changed or removed.
-All predicaments receive subscription `params` and also depending on predicament additional arguments.
+All predicaments receive subscription `params` and also, depending on predicament, additional arguments.
 
 ```
 var todoList = server.publish("todolist", {
-    getDocsOnSubscribe: params => (docs) => {
+    initial: (params, docs) => {
         if (params && params.lastEventId && docs) {
             const reducer = (obj, key) => ({
                 ...obj,
@@ -66,16 +66,16 @@ var todoList = server.publish("todolist", {
         }
         return docs;
     },
-    publishAddedPredicate: params => (id, doc) => {
+    added: (params, id, doc) => {
         if (params && params.type) {
             return params.type === doc.type;
         }
         return true;
     },
-    publishChangedPredicate: params => (id, changed, cleared) => {
+    changed: (params, id, changed, cleared) => {
         return changed.type !== undefined;
     },
-    publishRemovedPredicate: params => (id) => {
+    removed: (params, id) => {
         return true;
     }
 });

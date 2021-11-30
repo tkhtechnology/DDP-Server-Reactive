@@ -89,22 +89,30 @@ var DDPServer = function(opts) {
         case "sub":
 
           var getDocsOnSubscribe = function() { return collections[data.name]; }
-          var publishAddedPredicate = () => { return true; }
-          var publishChangedPredicate = () => { return true; }
-          var publishRemovedPredicate = () => { return true; }
+          var publishAdded = () => { return true; }
+          var publishChanged = () => { return true; }
+          var publishRemoved = () => { return true; }
           if (data.name in predicates) {
             var predicate = predicates[data.name];
-            if (predicate.getDocsOnSubscribe) {
-              getDocsOnSubscribe = predicate.getDocsOnSubscribe(data.params);
+            if (predicate.initial) {
+              getDocsOnSubscribe = function(docs) {
+                return predicate.initial(data.params, docs);
+              }
             }
-            if (predicate.publishAddedPredicate) {
-              publishAddedPredicate = predicate.publishAddedPredicate(data.params);
+            if (predicate.added) {
+              publishAdded = function(id, doc) {
+                return predicate.added(data.params, id, doc);
+              }
             }
-            if (predicate.publishChangedPredicate) {
-              publishChangedPredicate = predicate.publishChangedPredicate(data.params);
+            if (predicate.changed) {
+              publishChanged = function(id, changed, cleared) {
+                return predicate.changed(data.params, id, changed, cleared);
+              }
             }
-            if (predicate.publishRemovedPredicate) {
-              publishRemovedPredicate = predicate.publishRemovedPredicate(data.params);
+            if (predicate.removed) {
+              publishRemoved = function(id) {
+                return predicate.removed(data.params, id);
+              }
             }
           }
 
@@ -133,9 +141,9 @@ var DDPServer = function(opts) {
                 id: id
               })
             },
-            publishAddedPredicate,
-            publishChangedPredicate,
-            publishRemovedPredicate
+            publishAdded,
+            publishChanged,
+            publishRemoved
           };
 
           var docs = getDocsOnSubscribe(collections[data.name]);
@@ -179,6 +187,14 @@ var DDPServer = function(opts) {
     }
   }
 
+  /**
+   * @param {String} name - publication name
+   * @param {Object} predicate - object with functions executed when notifying subscriber about changes.
+   * @param {function(params, docs)} predicate.initial method gets all docs as argument. Can be used to return only a subset of docs.
+   * @param {function(params, id, doc)} predicate.added method should return 'true' if you want notify subscriber about added document or 'false' if not.
+   * @param {function(params, id, changed, cleared)} predicate.changed method should return 'true' if you want notify subscriber about changed document or 'false' if not.
+   * @param {function(params, id)} predicate.removed method should return 'true' if you want notify subscriber about removed document or 'false' if not.
+   */
   this.publish = function(name, predicate) {
     if (name in collections)
       throw new Error(500, "A collection named " + name + " already exists");
@@ -204,7 +220,7 @@ var DDPServer = function(opts) {
         }
       });
       for (var client in subscriptions)
-        if (subscriptions[client][name] && subscriptions[client][name].publishAddedPredicate(id, doc))
+        if (subscriptions[client][name] && subscriptions[client][name].publishAdded(id, doc))
           subscriptions[client][name].added(id, doc);
     }
 
@@ -224,14 +240,14 @@ var DDPServer = function(opts) {
     }
     function sendChanged(id, changed, cleared) {
       for (var client in subscriptions)
-        if (subscriptions[client][name] && subscriptions[client][name].publishChangedPredicate(id, changed, name))
+        if (subscriptions[client][name] && subscriptions[client][name].publishChanged(id, changed, name))
           subscriptions[client][name].changed(id, changed, cleared);
     }
 
     function remove(id) {
       delete documents[id];
       for (var client in subscriptions)
-        if (subscriptions[client][name] && subscriptions[client][name].publishRemovedPredicate(id))
+        if (subscriptions[client][name] && subscriptions[client][name].publishRemoved(id))
           subscriptions[client][name].removed(id);
     }
 
