@@ -10,6 +10,7 @@ var DDPServer = function(opts) {
       methods = opts.methods || {},
       collections = {},
       subscriptions = {},
+      predicates = {};
       self = this;
 
   if (!server) {
@@ -87,6 +88,34 @@ var DDPServer = function(opts) {
 
         case "sub":
 
+          var getDocsOnSubscribe = function() { return collections[data.name]; }
+          var publishAdded = () => { return true; }
+          var publishChanged = () => { return true; }
+          var publishRemoved = () => { return true; }
+          if (data.name in predicates) {
+            var predicate = predicates[data.name];
+            if (predicate.initial) {
+              getDocsOnSubscribe = function(docs) {
+                return predicate.initial(data.params, docs);
+              }
+            }
+            if (predicate.added) {
+              publishAdded = function(id, doc) {
+                return predicate.added(data.params, id, doc);
+              }
+            }
+            if (predicate.changed) {
+              publishChanged = function(id, changed, cleared) {
+                return predicate.changed(data.params, id, changed, cleared);
+              }
+            }
+            if (predicate.removed) {
+              publishRemoved = function(id) {
+                return predicate.removed(data.params, id);
+              }
+            }
+          }
+
           subscriptions[session_id][data.name] = {
             added: function(id, doc) {
               sendMessage({
@@ -111,12 +140,16 @@ var DDPServer = function(opts) {
                 collection: data.name,
                 id: id
               })
-            }
+            },
+            publishAdded,
+            publishChanged,
+            publishRemoved
           };
 
-          var docs = collections[data.name];
-          for (var id in docs)
+          var docs = getDocsOnSubscribe(collections[data.name]);
+          for (var id in docs) {
             subscriptions[session_id][data.name].added(id, docs[id]);
+          }
 
           sendMessage({
             msg: "ready",
@@ -154,9 +187,19 @@ var DDPServer = function(opts) {
     }
   }
 
-  this.publish = function(name) {
+  /**
+   * @param {String} name - publication name
+   * @param {Object} predicate - object with functions executed when notifying subscriber about changes.
+   * @param {function(params, docs)} predicate.initial method gets all docs as argument. Can be used to return only a subset of docs.
+   * @param {function(params, id, doc)} predicate.added method should return 'true' if you want notify subscriber about added document or 'false' if not.
+   * @param {function(params, id, changed, cleared)} predicate.changed method should return 'true' if you want notify subscriber about changed document or 'false' if not.
+   * @param {function(params, id)} predicate.removed method should return 'true' if you want notify subscriber about removed document or 'false' if not.
+   */
+  this.publish = function(name, predicate) {
     if (name in collections)
       throw new Error(500, "A collection named " + name + " already exists");
+
+    predicates[name] = predicate;
 
     var documents = {};
     var proxiedDocuments = {};
@@ -177,7 +220,7 @@ var DDPServer = function(opts) {
         }
       });
       for (var client in subscriptions)
-        if (subscriptions[client][name])
+        if (subscriptions[client][name] && subscriptions[client][name].publishAdded(id, doc))
           subscriptions[client][name].added(id, doc);
     }
 
@@ -197,14 +240,14 @@ var DDPServer = function(opts) {
     }
     function sendChanged(id, changed, cleared) {
       for (var client in subscriptions)
-        if (subscriptions[client][name])
+        if (subscriptions[client][name] && subscriptions[client][name].publishChanged(id, changed, name))
           subscriptions[client][name].changed(id, changed, cleared);
     }
 
     function remove(id) {
       delete documents[id];
       for (var client in subscriptions)
-        if (subscriptions[client][name])
+        if (subscriptions[client][name] && subscriptions[client][name].publishRemoved(id))
           subscriptions[client][name].removed(id);
     }
 
